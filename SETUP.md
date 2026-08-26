@@ -7,8 +7,21 @@ The public website will be:
 
 1. Create a free project at https://supabase.com/dashboard.
 2. Open **SQL Editor**, paste and run `supabase/schema.sql`. The owner is already set to `ahmedate125@gmail.com`.
-3. In **Authentication > URL Configuration**, set Site URL to the GitHub Pages URL above and add it as a Redirect URL. Organizer sign-in uses secure email magic links, including Gmail addresses.
+3. In **Authentication > URL Configuration**, set Site URL to the GitHub Pages URL above and add it as a Redirect URL. Organizers use email/password authentication; Supabase securely hashes passwords.
 4. The anon/publishable key is designed for browser use; row-level security protects edits. Never use the service-role key here.
+
+## Organizer signup and owner approval
+
+Run the latest `supabase/schema.sql` to add pending organizer requests and the owner-only approval function. A trigger on `auth.users` creates a pending request whenever a new account signs up.
+
+The optional owner email notification uses the `notify-owner` Supabase Edge Function and Resend:
+
+```sh
+supabase secrets set RESEND_API_KEY=your_resend_key OWNER_EMAIL=ahmedate125@gmail.com
+supabase functions deploy notify-owner --no-verify-jwt
+```
+
+For a verified sending domain, also set `OWNER_NOTIFICATION_FROM`. The function receives only the applicant email; passwords remain inside Supabase Auth and are never emailed or stored in `organizer_requests`.
 
 ## 2. Configure GitHub
 
