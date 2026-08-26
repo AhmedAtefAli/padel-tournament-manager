@@ -16,8 +16,10 @@ create table if not exists public.organizer_requests (
   requested_at timestamptz not null default now(),
   reviewed_at timestamptz,
   reviewed_by text,
-  notified_at timestamptz
+  notified_at timestamptz,
+  decision_notified_at timestamptz
 );
+alter table public.organizer_requests add column if not exists decision_notified_at timestamptz;
 alter table public.tournament_state enable row level security;
 alter table public.authorized_editors enable row level security;
 alter table public.organizer_requests enable row level security;

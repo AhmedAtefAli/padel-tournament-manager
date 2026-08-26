@@ -19,9 +19,10 @@ The optional owner email notification uses the `notify-owner` Supabase Edge Func
 ```sh
 supabase secrets set RESEND_API_KEY=your_resend_key OWNER_EMAIL=ahmedate125@gmail.com
 supabase functions deploy notify-owner --no-verify-jwt
+supabase functions deploy notify-applicant --no-verify-jwt
 ```
 
-For a verified sending domain, also set `OWNER_NOTIFICATION_FROM`. The function receives only the applicant email; passwords remain inside Supabase Auth and are never emailed or stored in `organizer_requests`.
+For a verified sending domain, also set `OWNER_NOTIFICATION_FROM`. `notify-owner` alerts the owner about a request, while `notify-applicant` confirms approval to the new organizer. The functions receive only email addresses; passwords remain inside Supabase Auth and are never emailed or stored in `organizer_requests`.
 
 ## 2. Configure GitHub
 

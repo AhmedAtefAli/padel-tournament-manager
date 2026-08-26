@@ -54,7 +54,17 @@ function TournamentEditor({ tournament, setTournament, session }: { tournament: 
   const addMatch = () => { if (draft.home === draft.away) return setNote('Choose two different teams'); setTournament({ ...tournament, matches: [...tournament.matches, { id: Math.max(0, ...tournament.matches.map(match => match.id)) + 1, ...draft, homeScore: 0, awayScore: 0, sets: '', status: 'scheduled' }] }); };
   const addEditor = async () => { if (!supabase) return; const { error } = await supabase.from('authorized_editors').insert({ email: newEmail.trim().toLowerCase(), role: 'editor', added_by: email }); setNote(error?.message ?? 'Organizer added'); setNewEmail(''); void loadEditors(); };
   const removeEditor = async (editorEmail: string) => { if (!supabase) return; const { error } = await supabase.from('authorized_editors').delete().eq('email', editorEmail); setNote(error?.message ?? 'Organizer removed'); void loadEditors(); };
-  const reviewRequest = async (requestEmail: string, approve: boolean) => { if (!supabase) return; const { error } = await supabase.rpc('review_organizer_request', { request_email: requestEmail, approve }); setNote(error?.message ?? (approve ? 'Organizer approved' : 'Request rejected')); void loadRequests(); void loadEditors(); };
+  const reviewRequest = async (requestEmail: string, approve: boolean) => {
+    if (!supabase) return;
+    const { error } = await supabase.rpc('review_organizer_request', { request_email: requestEmail, approve });
+    if (error) setNote(error.message);
+    else if (approve) {
+      const { error: notificationError } = await supabase.functions.invoke('notify-applicant', { body: { email: requestEmail } });
+      setNote(notificationError ? 'Organizer approved, but the confirmation email could not be sent.' : 'Organizer approved and confirmation email sent.');
+    } else setNote('Request rejected');
+    void loadRequests();
+    void loadEditors();
+  };
 
   return <main className="admin-shell"><header className="admin-head"><div><a href="./" target="_blank" rel="noreferrer">View public scoreboard ↗</a><h1>Tournament control</h1><p>Signed in as {email}</p></div><div className="admin-actions"><button onClick={save}>Publish changes</button><button className="sign-out" onClick={() => supabase?.auth.signOut()}>Sign out</button></div></header>{note && <p className="notice">{note}</p>}
     <section className="settings"><label>Tournament name<input value={tournament.name} onChange={event => setTournament({ ...tournament, name: event.target.value })}/></label><label>Dates<input value={tournament.dates} onChange={event => setTournament({ ...tournament, dates: event.target.value })}/></label><label>Structure<select value={tournament.format} onChange={event => setTournament({ ...tournament, format: event.target.value as Tournament['format'] })}><option>Two groups</option><option>Round robin</option></select></label></section>
