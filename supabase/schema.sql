@@ -56,7 +56,7 @@ begin
   if approve then
     insert into public.authorized_editors(email,role,added_by)
     values(lower(request_email),'editor',lower(auth.jwt()->>'email'))
-    on conflict(email) do update set role='editor', added_by=excluded.added_by;
+    on conflict(email) do update set added_by=excluded.added_by;
   end if;
   update public.organizer_requests set status=case when approve then 'approved' else 'rejected' end,
     reviewed_at=now(), reviewed_by=lower(auth.jwt()->>'email') where email=lower(request_email);
