@@ -10,18 +10,19 @@ export type StageProgress = { stage: JourneyStage; state: ProgressState; label: 
 export type TeamJourney = { status: string; stages: StageProgress[]; matches: TeamMatchResult[]; friendlies: TeamMatchResult[] };
 
 const stageOf = (match: Match): MatchStage => match.stage ?? 'Group stage';
+const numericScore = (score: number): number => Number(score) || 0;
 
 function resultFor(match: Match, teamId: number): ResultState {
   if (match.status === 'live') return 'live';
   if (match.status === 'scheduled') return 'scheduled';
-  const own = match.home === teamId ? match.homeScore : match.awayScore;
-  const other = match.home === teamId ? match.awayScore : match.homeScore;
+  const own = numericScore(match.home === teamId ? match.homeScore : match.awayScore);
+  const other = numericScore(match.home === teamId ? match.awayScore : match.homeScore);
   return own === other ? 'draw' : own > other ? 'win' : 'loss';
 }
 
 export function teamMatchResult(match: Match, team: Team, teams: Team[]): TeamMatchResult {
   const isHome = match.home === team.id;
-  return { match, stage: stageOf(match), opponent: teams.find(candidate => candidate.id === (isHome ? match.away : match.home)), result: resultFor(match, team.id), scoreFor: isHome ? match.homeScore : match.awayScore, scoreAgainst: isHome ? match.awayScore : match.homeScore };
+  return { match, stage: stageOf(match), opponent: teams.find(candidate => candidate.id === (isHome ? match.away : match.home)), result: resultFor(match, team.id), scoreFor: numericScore(isHome ? match.homeScore : match.awayScore), scoreAgainst: numericScore(isHome ? match.awayScore : match.homeScore) };
 }
 
 function statusFor(team: Team, tournament: Tournament): string {
@@ -44,11 +45,11 @@ function statusFor(team: Team, tournament: Tournament): string {
 
 export function buildStandings(tournament: Tournament): RankedTeam[] {
   const ranked = tournament.teams.map(team => {
-    const groupMatches = tournament.matches.filter(match => stageOf(match) === 'Group stage' && match.status === 'finished' && (match.homeScore !== 0 || match.awayScore !== 0) && (match.home === team.id || match.away === team.id));
-    const scoreFor = groupMatches.reduce((sum, match) => sum + (match.home === team.id ? match.homeScore : match.awayScore), 0);
-    const scoreAgainst = groupMatches.reduce((sum, match) => sum + (match.home === team.id ? match.awayScore : match.homeScore), 0);
-    const won = groupMatches.filter(match => (match.home === team.id ? match.homeScore : match.awayScore) > (match.home === team.id ? match.awayScore : match.homeScore)).length;
-    const drawn = groupMatches.filter(match => match.homeScore === match.awayScore).length;
+    const groupMatches = tournament.matches.filter(match => stageOf(match) === 'Group stage' && match.status === 'finished' && (numericScore(match.homeScore) !== 0 || numericScore(match.awayScore) !== 0) && (match.home === team.id || match.away === team.id));
+    const scoreFor = groupMatches.reduce((sum, match) => sum + numericScore(match.home === team.id ? match.homeScore : match.awayScore), 0);
+    const scoreAgainst = groupMatches.reduce((sum, match) => sum + numericScore(match.home === team.id ? match.awayScore : match.homeScore), 0);
+    const won = groupMatches.filter(match => numericScore(match.home === team.id ? match.homeScore : match.awayScore) > numericScore(match.home === team.id ? match.awayScore : match.homeScore)).length;
+    const drawn = groupMatches.filter(match => numericScore(match.homeScore) === numericScore(match.awayScore)).length;
     const lost = groupMatches.length - won - drawn;
     return { ...team, played: groupMatches.length, won, points: won * 3 + drawn, rank: 0, lost, scoreFor, scoreAgainst, scoreDifference: scoreFor - scoreAgainst, status: statusFor(team, tournament) };
   }).sort((a, b) => b.points - a.points || b.won - a.won || b.scoreDifference - a.scoreDifference || a.name.localeCompare(b.name));

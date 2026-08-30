@@ -34,7 +34,7 @@ test('keeps every standings field at zero until a group match is finished', () =
 });
 
 test('ignores a finished match that still has an empty 0-0 result', () => {
-  const alpha = buildStandings(tournament([match({ id: 1, home: 1, away: 2, status: 'finished', sets: '0-0 placeholder' })])).find(team => team.id === 1)!;
+  const alpha = buildStandings(tournament([match({ id: 1, home: 1, away: 2, status: 'finished', homeScore: '0' as unknown as number, awayScore: '0' as unknown as number, sets: '0-0 placeholder' })])).find(team => team.id === 1)!;
   assert.deepEqual({ played: alpha.played, won: alpha.won, lost: alpha.lost, points: alpha.points }, { played: 0, won: 0, lost: 0, points: 0 });
 });
 
