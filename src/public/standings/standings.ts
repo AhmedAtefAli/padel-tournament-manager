@@ -47,7 +47,10 @@ export function buildStandings(tournament: Tournament): RankedTeam[] {
     const groupMatches = tournament.matches.filter(match => stageOf(match) === 'Group stage' && match.status === 'finished' && (match.home === team.id || match.away === team.id));
     const scoreFor = groupMatches.reduce((sum, match) => sum + (match.home === team.id ? match.homeScore : match.awayScore), 0);
     const scoreAgainst = groupMatches.reduce((sum, match) => sum + (match.home === team.id ? match.awayScore : match.homeScore), 0);
-    return { ...team, rank: 0, lost: Math.max(team.played - team.won, 0), scoreFor, scoreAgainst, scoreDifference: scoreFor - scoreAgainst, status: statusFor(team, tournament) };
+    const won = groupMatches.filter(match => (match.home === team.id ? match.homeScore : match.awayScore) > (match.home === team.id ? match.awayScore : match.homeScore)).length;
+    const drawn = groupMatches.filter(match => match.homeScore === match.awayScore).length;
+    const lost = groupMatches.length - won - drawn;
+    return { ...team, played: groupMatches.length, won, points: won * 3 + drawn, rank: 0, lost, scoreFor, scoreAgainst, scoreDifference: scoreFor - scoreAgainst, status: statusFor(team, tournament) };
   }).sort((a, b) => b.points - a.points || b.won - a.won || b.scoreDifference - a.scoreDifference || a.name.localeCompare(b.name));
   return ranked.map((team, index) => ({ ...team, rank: index + 1 }));
 }

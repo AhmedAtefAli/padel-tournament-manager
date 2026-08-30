@@ -18,7 +18,19 @@ test('ranks by points, wins, score difference, then name', () => {
   ]));
   assert.deepEqual(table.map(team => team.name), ['Alpha', 'Bravo', 'Charlie']);
   assert.equal(table[0].scoreDifference, 4);
-  assert.equal(table[0].lost, 1);
+  assert.equal(table[0].played, 1);
+  assert.equal(table[0].won, 1);
+  assert.equal(table[0].lost, 0);
+  assert.equal(table[0].points, 3);
+});
+
+test('keeps every standings field at zero until a group match is finished', () => {
+  const table = buildStandings(tournament([
+    match({ id: 1, home: 1, away: 2, homeScore: 4, awayScore: 2, status: 'live' }),
+    match({ id: 2, home: 1, away: 3, status: 'scheduled' }),
+  ]));
+  const alpha = table.find(team => team.id === 1)!;
+  assert.deepEqual({ played: alpha.played, won: alpha.won, lost: alpha.lost, scoreFor: alpha.scoreFor, scoreAgainst: alpha.scoreAgainst, scoreDifference: alpha.scoreDifference, points: alpha.points }, { played: 0, won: 0, lost: 0, scoreFor: 0, scoreAgainst: 0, scoreDifference: 0, points: 0 });
 });
 
 test('treats a missing legacy stage as group stage and handles team-relative results', () => {
