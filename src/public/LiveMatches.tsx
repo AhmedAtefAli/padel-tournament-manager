@@ -5,7 +5,11 @@ type LiveMatchesProps = {
 };
 
 export function LiveMatches({ tournament }: LiveMatchesProps) {
-  const liveMatches = tournament.matches.filter(match => match.status === 'live');
+  const liveMatches = tournament.matches.filter((match, index, matches) =>
+    match.status === 'live' && matches.findIndex(candidate =>
+      candidate.status === 'live' && candidate.court.trim().toLocaleLowerCase() === match.court.trim().toLocaleLowerCase()
+    ) === index
+  );
 
   if (liveMatches.length === 0) {
     return <div className="live-empty" role="status">No matches are live right now.</div>;
