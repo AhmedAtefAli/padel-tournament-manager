@@ -1,40 +1,104 @@
 name: Deploy to GitHub Pages
+
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
   group: pages
   cancel-in-progress: true
+
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.preview.outputs.url || steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Select deployment mode
+        id: mode
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "preview=true" >> "$GITHUB_OUTPUT"
+            echo "slug=pr-${{ github.event.number }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.ref_name }}" != "main" ]]; then
+            slug=$(echo "${{ github.ref_name }}" | tr '/_' '--' | tr -cd '[:alnum:].-')
+            echo "preview=true" >> "$GITHUB_OUTPUT"
+            echo "slug=$slug" >> "$GITHUB_OUTPUT"
+          else
+            echo "preview=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out production
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
+
       - uses: pnpm/action-setup@v4
         with: { version: 10 }
+
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: production/pnpm-lock.yaml
+
+      - name: Build production root
+        working-directory: production
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
         env:
           VITE_SUPABASE_URL: https://awloipabxzrsklhdggme.supabase.co
           VITE_SUPABASE_ANON_KEY: sb_publishable_FyZqnkwgegV4-6ZBCjxN7w_La6MKBvO
+
+      - name: Prepare deployment root
+        run: mv production/dist site
+
+      - name: Check out preview source
+        if: steps.mode.outputs.preview == 'true' && github.event.action != 'closed'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: preview
+
+      - name: Build preview
+        if: steps.mode.outputs.preview == 'true' && github.event.action != 'closed'
+        working-directory: preview
+        run: |
+          test -n "$VITE_SUPABASE_URL"
+          test -n "$VITE_SUPABASE_ANON_KEY"
+          pnpm install --frozen-lockfile
+          pnpm test
+          pnpm build
+          mkdir -p "../site/previews/${{ steps.mode.outputs.slug }}"
+          cp -R dist/. "../site/previews/${{ steps.mode.outputs.slug }}/"
+        env:
+          VITE_BASE_PATH: /padel-tournament-manager/previews/${{ steps.mode.outputs.slug }}/
+          VITE_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+
+      - name: Set preview URL
+        if: steps.mode.outputs.preview == 'true' && github.event.action != 'closed'
+        id: preview
+        run: echo "url=https://ahmedatefali.github.io/padel-tournament-manager/previews/${{ steps.mode.outputs.slug }}/" >> "$GITHUB_OUTPUT"
+
       - uses: actions/configure-pages@v5
+
       - uses: actions/upload-pages-artifact@v3
-        with: { path: dist }
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
+        with: { path: site }
+
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
-
