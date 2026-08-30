@@ -1,0 +1,76 @@
+name: Deploy pull request preview
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}previews/pr-${{ github.event.number }}/
+    steps:
+      - name: Check out production
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: production/pnpm-lock.yaml }
+
+      - name: Build production root
+        working-directory: production
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+        env:
+          VITE_SUPABASE_URL: https://awloipabxzrsklhdggme.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_FyZqnkwgegV4-6ZBCjxN7w_La6MKBvO
+
+      - name: Prepare deployment root
+        run: mv production/dist site
+
+      - name: Check out pull request
+        if: github.event.action != 'closed'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: preview
+
+      - name: Build pull request preview
+        if: github.event.action != 'closed'
+        working-directory: preview
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm test
+          pnpm build
+          mkdir -p ../site/previews/pr-${{ github.event.number }}
+          cp -R dist/. ../site/previews/pr-${{ github.event.number }}/
+        env:
+          VITE_BASE_PATH: /padel-tournament-manager/previews/pr-${{ github.event.number }}/
+          VITE_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+
+      - name: Deploy production and preview
+        id: deployment
+        uses: actions/deploy-pages@v4
