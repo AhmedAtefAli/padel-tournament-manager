@@ -33,6 +33,11 @@ test('keeps every standings field at zero until a group match is finished', () =
   assert.deepEqual({ played: alpha.played, won: alpha.won, lost: alpha.lost, scoreFor: alpha.scoreFor, scoreAgainst: alpha.scoreAgainst, scoreDifference: alpha.scoreDifference, points: alpha.points }, { played: 0, won: 0, lost: 0, scoreFor: 0, scoreAgainst: 0, scoreDifference: 0, points: 0 });
 });
 
+test('ignores a finished match that still has an empty 0-0 result', () => {
+  const alpha = buildStandings(tournament([match({ id: 1, home: 1, away: 2, status: 'finished' })])).find(team => team.id === 1)!;
+  assert.deepEqual({ played: alpha.played, won: alpha.won, lost: alpha.lost, points: alpha.points }, { played: 0, won: 0, lost: 0, points: 0 });
+});
+
 test('treats a missing legacy stage as group stage and handles team-relative results', () => {
   const result = teamMatchResult(match({ id: 1, home: 1, away: 2, homeScore: 3, awayScore: 6, status: 'finished' }), teams[1], teams);
   assert.equal(result.stage, 'Group stage');

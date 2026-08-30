@@ -44,7 +44,7 @@ function statusFor(team: Team, tournament: Tournament): string {
 
 export function buildStandings(tournament: Tournament): RankedTeam[] {
   const ranked = tournament.teams.map(team => {
-    const groupMatches = tournament.matches.filter(match => stageOf(match) === 'Group stage' && match.status === 'finished' && (match.home === team.id || match.away === team.id));
+    const groupMatches = tournament.matches.filter(match => stageOf(match) === 'Group stage' && match.status === 'finished' && (match.homeScore !== 0 || match.awayScore !== 0 || match.sets.trim() !== '') && (match.home === team.id || match.away === team.id));
     const scoreFor = groupMatches.reduce((sum, match) => sum + (match.home === team.id ? match.homeScore : match.awayScore), 0);
     const scoreAgainst = groupMatches.reduce((sum, match) => sum + (match.home === team.id ? match.awayScore : match.homeScore), 0);
     const won = groupMatches.filter(match => (match.home === team.id ? match.homeScore : match.awayScore) > (match.home === team.id ? match.awayScore : match.homeScore)).length;
