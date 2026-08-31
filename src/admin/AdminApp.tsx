@@ -4,6 +4,7 @@ import { isConfigured, supabase } from '../shared/supabase';
 import { stageOrder, type MatchStage, type Tournament } from '../shared/tournament';
 import { useTournament } from '../shared/useTournament';
 import { AdminStageSections } from './AdminStageSections';
+import { decideOrganizerAccess, type AccessState } from './access';
 import './admin.css';
 
 type Editor = { email: string; role: 'owner' | 'editor' };
@@ -12,28 +13,44 @@ type OrganizerRequest = { email: string; status: 'pending' | 'approved' | 'rejec
 export default function AdminApp() {
   const { tournament, setTournament } = useTournament();
   const [session, setSession] = useState<Session | null>(null);
-  const [authorized, setAuthorized] = useState(false);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
+  const [accessState, setAccessState] = useState<AccessState>('checking');
+  const [accessError, setAccessError] = useState('');
+  const [accessRetry, setAccessRetry] = useState(0);
   const [requestStatus, setRequestStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
-    void supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
+    void supabase.auth.getSession().then(({ data }) => { setSession(data.session); setSessionLoaded(true); });
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => { setSession(nextSession); setSessionLoaded(true); });
     return () => data.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
     const email = session?.user.email?.toLowerCase();
-    if (!supabase || !email) { setAuthorized(false); setRequestStatus(null); return; }
+    if (!supabase || !email) { setAccessState('checking'); setRequestStatus(null); setAccessError(''); return; }
+    let cancelled = false;
+    setAccessState('checking');
+    setAccessError('');
     void Promise.all([
       supabase.from('authorized_editors').select('email').eq('email', email).maybeSingle(),
       supabase.from('organizer_requests').select('status').eq('email', email).maybeSingle(),
-    ]).then(([editorResult, requestResult]) => { setAuthorized(Boolean(editorResult.data)); setRequestStatus(requestResult.data?.status ?? null); });
-  }, [session]);
+    ]).then(([editorResult, requestResult]) => {
+      if (cancelled) return;
+      const decision = decideOrganizerAccess(editorResult, requestResult);
+      setAccessState(decision.state);
+      setRequestStatus(decision.requestStatus);
+      setAccessError(decision.errorMessage ?? '');
+    });
+    return () => { cancelled = true; };
+  }, [session?.user.id, accessRetry]);
 
   if (!isConfigured) return <Gate title="Setup required" text="Add your Supabase project values to .env.local, then restart the app."/>;
+  if (!sessionLoaded) return <Gate title="Checking session…" text="Confirming your organizer session with Supabase."/>;
   if (!session) return <OrganizerLogin/>;
-  if (!authorized) return <Gate title={requestStatus === 'pending' ? 'Approval pending' : 'Access not authorized'} text={requestStatus === 'pending' ? 'Your organizer registration was sent to the tournament owner for approval.' : requestStatus === 'rejected' ? 'Your organizer registration was not approved.' : `${session.user.email?.toLowerCase()} is signed in, but is not on the organizer list.`} action={() => supabase?.auth.signOut()} actionText="Sign out"/>;
+  if (accessState === 'checking') return <Gate title="Checking organizer access…" text="Confirming that your account can manage this tournament."/>;
+  if (accessState === 'error') return <Gate title="Could not verify access" text={`Your session is still active, but the organizer check failed${accessError ? `: ${accessError}` : '.'}`} action={() => setAccessRetry(value => value + 1)} actionText="Try again"/>;
+  if (accessState === 'unauthorized') return <Gate title={requestStatus === 'pending' ? 'Approval pending' : 'Access not authorized'} text={requestStatus === 'pending' ? 'Your organizer registration was sent to the tournament owner for approval.' : requestStatus === 'rejected' ? 'Your organizer registration was not approved.' : `${session.user.email?.toLowerCase()} is signed in, but is not on the organizer list.`} action={() => supabase?.auth.signOut()} actionText="Sign out"/>;
   return <TournamentEditor tournament={tournament} setTournament={setTournament} session={session}/>;
 }
 
