@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { Match, Team, Tournament } from '../../shared/tournament';
-import { buildStandings, buildTeamJourney, teamMatchResult } from './standings.ts';
+import type { Match, Team, Tournament } from '../src/shared/tournament';
+import { buildStandings, buildTeamJourney, teamMatchResult } from '../src/public/standings/standings.ts';
 
 const teams: Team[] = [
   { id: 1, name: 'Alpha', players: 'A & B', played: 2, won: 1, points: 3 },
@@ -82,3 +82,5 @@ test('shows draw without treating it as elimination', () => {
   assert.equal(buildTeamJourney(event, teams[0]).matches[0].result, 'draw');
   assert.notEqual(buildTeamJourney(event, teams[0]).stages[1].state, 'eliminated');
 });
+
+
