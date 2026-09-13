@@ -571,7 +571,7 @@ Why each top-level addition exists:
 Following the source prompt's own ordering, since nothing inspected here argues for a different sequence:
 
 - **Milestone 2 — Camera capability detection.** Build `CameraCaptureService.capabilities()` and a `CameraCapabilities` model; surface it on a developer/debug screen. Zero dependency on backend or scoring work above — purely `Camera/` + `Diagnostics/` + minimal `UI/`. **Implemented** in `mobile/ios/PadelCameraApp/` (see its `README.md` for how to build/run it from Swift Playgrounds on iPad, deploying to a physical iPhone). Diagnostics/logging was left out for now — the debug screen renders `CameraCapabilities` directly; not needed until capture/recording milestones produce something worth logging.
-- **Milestone 3 — Single-camera capture.** **Implemented** (code only, not yet run on device) in `mobile/ios/PadelCameraApp/` (`SingleCameraCaptureController` + `SingleCameraPreviewScreen`), added as a second tab alongside the Milestone 2 debug screen.
+- **Milestone 3 — Single-camera capture.** **Implemented and validated** in `mobile/ios/PadelCameraApp/` (`SingleCameraCaptureController` + `SingleCameraPreviewScreen`), added as a second tab alongside the Milestone 2 debug screen. Confirmed live on an iPad Air's single wide rear camera via Swift Playgrounds — an initial bug (`startRunning()` called before `commitConfiguration()` finished, crashing with an uncatchable Objective-C exception) was found and fixed during that testing.
 - **Milestone 4 — `AVCaptureMultiCamSession` wide + ultra-wide capture**, with the fallback chain from §14.
 - **Milestone 5 — Dual-camera preview + performance metrics.**
 - **Milestone 6 — Frame timestamp synchronization** (`FrameSynchronizer`, §11).
