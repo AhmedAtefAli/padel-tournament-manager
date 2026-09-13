@@ -566,6 +566,31 @@ Why each top-level addition exists:
 
 ---
 
+## 19a. Android track (added in a later session)
+
+This architecture document was originally scoped iOS-only (per the source prompt). A
+parallel Android track was added afterward, living at `mobile/android/PadelCameraApp/`
+alongside `mobile/ios/PadelCameraApp/` — same milestone numbering and fallback-chain
+philosophy, different platform APIs:
+
+| Concept | iOS | Android |
+|---|---|---|
+| True simultaneous multi-camera check | `AVCaptureMultiCamSession.isMultiCamSupported` | `CameraManager.concurrentCameraIds` (API 30+) containing a 2+ rear-camera combination |
+| Capture/preview framework | AVFoundation (`AVCaptureSession`, `AVCaptureVideoPreviewLayer`) | CameraX (`Preview` use case, `PreviewView`) |
+| Fallback chain | wide+ultra-wide → wide only → ultra-wide only → unsupported | concurrent rear capture → single rear only → unsupported |
+
+**Why Android is easier to test right now**: it needs no Mac, no paid developer
+account, and no 7-day provisioning expiry — a debug APK is self-signed automatically
+and can be built by GitHub Actions (`.github/workflows/android-build.yml`) and
+sideloaded directly, which is why Android Milestones 2–3 were implemented in parallel
+with iOS rather than after it.
+
+Not yet decided: whether the eventual production camera app ships on both platforms,
+Android-first, or iOS-first — this is a product decision for the team, not something
+this exploration resolves.
+
+---
+
 ## 20. Recommended next milestones
 
 Following the source prompt's own ordering, since nothing inspected here argues for a different sequence:
