@@ -50,11 +50,6 @@ final class SingleCameraCaptureController: NSObject, ObservableObject {
     }
 
     private func configureAndStart(preferring preferredDevice: AVCaptureDevice?) {
-        session.beginConfiguration()
-        defer { session.commitConfiguration() }
-
-        session.inputs.forEach { session.removeInput($0) }
-
         guard let device = preferredDevice ?? defaultRearCamera() ?? AVCaptureDevice.default(for: .video) else {
             publish(error: .noCameraAvailable)
             return
@@ -62,12 +57,22 @@ final class SingleCameraCaptureController: NSObject, ObservableObject {
 
         do {
             let input = try AVCaptureDeviceInput(device: device)
+
+            // beginConfiguration/commitConfiguration must fully complete BEFORE
+            // startRunning() is called — calling startRunning() while configuration is
+            // still open throws an uncatchable Objective-C exception that crashes the
+            // app with no useful Swift error message.
+            session.beginConfiguration()
+            session.inputs.forEach { session.removeInput($0) }
             guard session.canAddInput(input) else {
+                session.commitConfiguration()
                 publish(error: .cannotAddInput)
                 return
             }
             session.addInput(input)
             session.sessionPreset = .high
+            session.commitConfiguration()
+
             session.startRunning()
 
             DispatchQueue.main.async {
