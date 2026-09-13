@@ -571,7 +571,7 @@ Why each top-level addition exists:
 Following the source prompt's own ordering, since nothing inspected here argues for a different sequence:
 
 - **Milestone 2 — Camera capability detection.** Build `CameraCaptureService.capabilities()` and a `CameraCapabilities` model; surface it on a developer/debug screen. Zero dependency on backend or scoring work above — purely `Camera/` + `Diagnostics/` + minimal `UI/`. **Implemented** in `mobile/ios/PadelCameraApp/` (see its `README.md` for how to build/run it from Swift Playgrounds on iPad, deploying to a physical iPhone). Diagnostics/logging was left out for now — the debug screen renders `CameraCapabilities` directly; not needed until capture/recording milestones produce something worth logging.
-- **Milestone 3 — Single-camera capture.**
+- **Milestone 3 — Single-camera capture.** **Implemented** (code only, not yet run on device) in `mobile/ios/PadelCameraApp/` (`SingleCameraCaptureController` + `SingleCameraPreviewScreen`), added as a second tab alongside the Milestone 2 debug screen.
 - **Milestone 4 — `AVCaptureMultiCamSession` wide + ultra-wide capture**, with the fallback chain from §14.
 - **Milestone 5 — Dual-camera preview + performance metrics.**
 - **Milestone 6 — Frame timestamp synchronization** (`FrameSynchronizer`, §11).
@@ -580,7 +580,7 @@ Following the source prompt's own ordering, since nothing inspected here argues 
 - **Milestone 9 — Homography / image-to-court coordinates**, with unit tests (mirrors the existing repo's pattern of pure-function unit tests for `standings.ts`/`access.ts`).
 - **Milestone 10 — Dataset/frame export** for future CV training.
 
-Milestone 2 implemented in a later session (`mobile/ios/PadelCameraApp/`); Milestones 3–10 not started.
+Milestones 2–3 implemented in later sessions (`mobile/ios/PadelCameraApp/`); Milestones 4–10 not started.
 
 ---
 

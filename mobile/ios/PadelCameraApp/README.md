@@ -1,9 +1,13 @@
-# PadelCameraApp — Milestone 2: Camera capability detection
+# PadelCameraApp — Milestones 2–3: capability detection + single-camera preview
 
-Scope (per `docs/padel-camera-architecture.md`, Milestone 2 + §14): detect what a
-device's cameras can actually do — rear camera(s) present, multi-cam support, supported
-formats/FPS — and show it on a debug screen. **No capture, no recording, no backend
-calls, no scoring.**
+Scope (per `docs/padel-camera-architecture.md`):
+- **Milestone 2** (§14): detect what a device's cameras can actually do — rear
+  camera(s) present, multi-cam support, supported formats/FPS — and show it on a debug
+  screen.
+- **Milestone 3**: open one physical camera and show its live feed.
+
+**Still out of scope:** dual-camera capture (Milestone 4), recording, calibration,
+backend calls, scoring.
 
 ## Files
 
@@ -13,8 +17,14 @@ calls, no scoring.**
 - `Camera/CameraCaptureService.swift` — `capabilities()`, which queries
   `AVCaptureDevice.DiscoverySession` and `AVCaptureMultiCamSession.isMultiCamSupported`
   fresh every call (never cached/hardcoded per device model).
-- `UI/CapabilitiesDebugView.swift` — the developer/debug screen that renders the above.
-- `App/PadelCameraAppApp.swift` — app entry point; just shows the debug screen.
+- `Camera/SingleCameraCaptureController.swift` — Milestone 3: opens one
+  `AVCaptureSession` on the best available camera and publishes running/error state.
+- `UI/CapabilitiesDebugView.swift` — the Milestone 2 developer/debug screen.
+- `UI/CameraPreviewView.swift` — `UIViewRepresentable` bridge exposing
+  `AVCaptureVideoPreviewLayer` to SwiftUI.
+- `UI/SingleCameraPreviewScreen.swift` — the Milestone 3 live-preview screen.
+- `App/PadelCameraAppApp.swift` — app entry point; a two-tab app (Capabilities /
+  Preview).
 
 ## Running this on your iPad/iPhone via Swift Playgrounds
 
@@ -51,15 +61,17 @@ your installed version, do this instead (more reliable, ~3 minutes):
 
 ## What to expect on different devices
 
-- **iPad Air** (no ultra-wide rear lens): expect `Wide only` as the recommendation —
-  this is the correct, expected result, not a bug. It's a real validation of the
-  fallback chain in §14.
+- **iPad Air** (no ultra-wide rear lens): expect `Wide only` as the recommendation on
+  the Capabilities tab — this is the correct, expected result, not a bug. It's a real
+  validation of the fallback chain in §14. The Preview tab should show a live feed from
+  the single wide rear camera.
 - **iPhone Pro / Pro Max, or iPad Pro 11"/12.9" (2020+)**: if `isMultiCamSupported` is
-  `Yes` and both a wide and ultra-wide rear camera are listed, you should see `Wide +
-  Ultra-wide (dual rear capture)` — this is the only real test of true Milestone 4
-  hardware support.
+  `Yes` and both a wide and ultra-wide rear camera are listed, the Capabilities tab
+  should show `Wide + Ultra-wide (dual rear capture)` — this is the only real test of
+  true Milestone 4 hardware support (still not implemented — this app still only opens
+  one camera at a time even on this hardware).
 
 ## Not in scope here
 
-Opening an `AVCaptureSession`, previewing a live feed, recording, calibration, and
-everything else is Milestone 3 onward — intentionally not touched by this file set.
+Dual-camera capture, frame synchronization, recording, calibration, and everything else
+is Milestone 4 onward — intentionally not touched by this file set.
